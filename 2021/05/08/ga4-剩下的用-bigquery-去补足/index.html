@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang="zh-cn"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> GA4 剩下的用 BigQuery 去补足 · xiaopc</title><meta name="description" content="GA4 剩下的用 BigQuery 去补足 - xiaopc"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://xiaopc.org/atom.xml" title="xiaopc"><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="xiaopc" type="application/atom+xml">
+</head><body><div class="wrap"><header><a class="logo-link" href="/"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link" href="/" target="_self">home</a></li><li class="nav-list-item"><a class="nav-list-link" href="/archives/" target="_self">archives</a></li><li class="nav-list-item"><a class="nav-list-link" href="/links/" target="_self">links</a></li><li class="nav-list-item"><a class="nav-list-link" href="https://xpc.im/" target="_blank">about</a></li><li class="nav-list-item"><a class="nav-list-link" href="/blog-en/" target="_self">en</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">GA4 剩下的用 BigQuery 去补足</h1><div class="post-info">2021年5月8日 · <a href="/categories/devops/">devops</a></div><div class="post-content"><p>在<a href="/2021/03/14/用-google-analytics-4-和-google-tag-manager-能玩出什么花样/">用 Google Analytics 4 和 Google Tag Manager 能玩出什么花样</a>一文中谈到，GA4 的分析功能目前还不够强大，那么就直接把「原始数据」倒出来分析吧。</p>
+<span id="more"></span>
+<h2 id="数据长什么样">0. 数据长什么样</h2>
+<p>前文说到，GA4 的全部回报均为事件驱动，那么数据就是一系列事件组成的集合，每个事件有一定的属性...</p>
+<p>这不就是结构化数据嘛，结构化数据查询语言是... SQL 啊...</p>
+<p>GA4 给到的原始数据表就是这样的：</p>
+<figure>
+<img src="/images/bigquery_0.png" alt="" /><figcaption>表结构</figcaption>
+</figure>
+<figure>
+<img src="/images/bigquery_1.png" alt="" /><figcaption>数据示例</figcaption>
+</figure>
+<p>不过看起来和传统关系型数据库有一点点不一样，这个下面再说.</p>
+<h2 id="开始设置转发">1. 开始设置转发</h2>
+<p>打开 GA4 的管理 - BigQuery 关联，点击「关联」.</p>
+<figure>
+<img src="/images/bigquery_2.png" alt="" /><figcaption>关联向导</figcaption>
+</figure>
+<p>点击「选择一个 BigQuery 项目」，勾选一个 BigQuery 项目.</p>
+<p>没有 BigQuery 项目，或是勾选后提示「所选的 Google Cloud 项目未启用 BigQuery API」怎么办呢？</p>
+<p>那你一定没开通 Google Cloud 吧.</p>
+<p>但不想开通（不想浪费掉新用户免费试用）怎么办呢？开一个 Firebase 就有了。</p>
+<p>（不需要的可以跳过下一节）</p>
+<h2 id="白嫖-firebase">2. 白嫖 Firebase</h2>
+<p>Firebase 是 Google 的开发者平台，由于「混乱的大公司」问题，它并没有被合并到云服务部门，而且它还送独立的云服务资源.</p>
+<p>打开 <a target="_blank" rel="noopener" href="https://firebase.google.com">Firebase</a>，创建一个免费的项目（这里就不截图了）.</p>
+<p>侧边栏齿轮 - Project Settings - Integrations - BigQuery：</p>
+<figure>
+<img src="/images/bigquery_3.png" alt="" /><figcaption>Linking Firebase to BigQuery</figcaption>
+</figure>
+<p>这里写到，免费版提供的 BigQuery 是沙箱，只保留 60 天数据，最大 10GB.</p>
+<p>然后点 Continue 继续，在第二步所有的选项都不勾选（可以看到，基本上提供的都是 App 开发服务），然后点 Link to BigQuery.</p>
+<p>显示可用空间 10GB 就表示已经完成了.</p>
+<h2 id="完成配置转发">3. 完成配置转发</h2>
+<p>回到刚才的 GA4 关联向导，这时就可以选刚才创建的 Firebase 项目提供的那个.</p>
+<p>数据位置随便选，多个项目关联到同一个 BigQuery 的话，位置必须选一样的. 然后下一步.</p>
+<figure>
+<img src="/images/bigquery_4.png" alt="" /><figcaption>配置设置</figcaption>
+</figure>
+<p>勾选「每天」，当然付费用户可以选择流式.</p>
+<p>每天的导出时间大概在 GMT 零点后，也就是北京时间早上八点.</p>
+<p>点下一步，提交，配置转发就完成了，接下来就是等第二天看数据.</p>
+<h2 id="bigquery-初上手">4. BigQuery 初上手</h2>
+<p>那么哪里才能找到 BigQuery 呢？当然是 Google Cloud 了.</p>
+<p>Google Cloud 用户可以在导航栏的 Big Data 类目找到，也可以通过 <a target="_blank" rel="noopener" href="https://console.cloud.google.com/bigquery">https://console.cloud.google.com/bigquery</a> 直接进入.</p>
+<figure>
+<img src="/images/bigquery_5.png" alt="" /><figcaption>BigQuery 界面</figcaption>
+</figure>
+<p>左边栏是功能及数据集树状图，右边分别是查询语句输入和查询结果窗格，和传统数据库客户端基本一样.</p>
+<p>它的 SQL 也是标准的 SQL 语言，符合 SQL 2011 标准，<a target="_blank" rel="noopener" href="https://cloud.google.com/bigquery/docs/reference/standard-sql/migrating-from-legacy-sql?hl=zh-cn">有问题可以查官方文档</a>.</p>
+<p>（之前 BigQuery 用的不是标准 SQL，遗留问题不必管他）</p>
+<p>数据的层次是项目-数据集-表，也很像. 数据集默认命名是 <code>analytics_统计ID</code>，表就是 <code>events_</code>.</p>
+<p>（这里是把每日的 <code>events_日期</code> 表合并显示了）</p>
+<p>选中 <code>events_</code> 表，点 Query Table 会自动写当前表的 <code>SELECT FROM</code> 语句.</p>
+<figure>
+<img src="/images/bigquery_6.png" alt="" /><figcaption>SELECT FROM</figcaption>
+</figure>
+<p>可以看到，有语法检查. 这个语法检查有两个层级，一是语法检查，二是结合数据表检查.</p>
+<p>（对真大数据玩家来说，可以节约一点时间）</p>
+<h2 id="实测统计跳出">4. 实测：统计跳出</h2>
+<p>统计跳出站外的链接这个需求，很少有统计系统去做.</p>
+<p>GA4 里明明能看到 <code>click</code> 事件，还能在实时监控里看到最近的 <code>link_url</code> 事件属性，然而在统计里就是调不出来.</p>
+<p>所有指标里就是没有这个属性，把这个属性设置自定义指标也拿不到数据，这就令人难受了.</p>
+<p>（如果有调出来的方法的话可以留言）</p>
+<p>那就只能用 BigQuery 看看.</p>
+<p>但是，如果写一个这样的 SQL 查询：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> event_params </span><br><span class="line">  <span class="keyword">FROM</span> `project.analytics_id.events_date`</span><br><span class="line">  LIMIT <span class="number">100</span></span><br></pre></td></tr></table></figure>
+<p>会得到 event_params.key, event_params.value.string_value, event_params.value.int_value, event_params.value.float_value, event_params.value.double_value 这些项.</p>
+<p>然而用点号访问，例如 <code>event_params.value.string_value</code>，会得到一个错误：</p>
+<blockquote>
+<p>Cannot access field value on a value with type ARRAY&lt;STRUCT&lt;key STRING, value STRUCT&lt;string_value STRING, int_value INT64, float_value FLOAT64, ...&gt;&gt;&gt;</p>
+</blockquote>
+<p>event_params 被定义为嵌套了数组（ARRAY）和结构体（STRUCT）的数据，ARRAY 包括每个属性，每个属性有属性名和属性值，属性值还分 string/int/float...</p>
+<p>啊，这就难到学老版本 SQL 标准的了. 不过感谢万能的 StackOverflow，文末的参考链接给出了一个辅助函数：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> TEMP <span class="keyword">FUNCTION</span> paramValueByKey(k STRING, params <span class="keyword">ARRAY</span><span class="operator">&lt;</span>STRUCT<span class="operator">&lt;</span>key STRING, <span class="keyword">value</span> STRUCT<span class="operator">&lt;</span>string_value STRING, int_value INT64, float_value FLOAT64, double_value FLOAT64 <span class="operator">&gt;&gt;</span><span class="operator">&gt;</span>) <span class="keyword">AS</span> (</span><br><span class="line">  (<span class="keyword">SELECT</span> x.value <span class="keyword">FROM</span> <span class="built_in">UNNEST</span>(params) x <span class="keyword">WHERE</span> x.key<span class="operator">=</span>k)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>定义了一个临时函数（每次请求都要定义）<code>paramValueByKey('属性名', event_params)</code>，取出这个属性.</p>
+<p>那么，统计 <code>click</code> 事件的 <code>link_url</code> 的次数就可以这么写：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> url, <span class="built_in">COUNT</span>(<span class="operator">*</span>) <span class="keyword">AS</span> count </span><br><span class="line">  <span class="keyword">FROM</span> (<span class="keyword">SELECT</span> paramValueByKey(<span class="string">&#x27;link_url&#x27;</span>, event_params).string_value <span class="keyword">AS</span> url </span><br><span class="line">          <span class="keyword">FROM</span> `project.analytics_id.events_date` </span><br><span class="line">          <span class="keyword">WHERE</span> event_name<span class="operator">=</span>&quot;click&quot;</span><br><span class="line">        )</span><br><span class="line">  <span class="keyword">GROUP</span> <span class="keyword">BY</span> url</span><br><span class="line">  <span class="keyword">ORDER</span> <span class="keyword">BY</span> count <span class="keyword">DESC</span>;</span><br></pre></td></tr></table></figure>
+<p>前面跟上辅助函数的实现，提交，就有了.</p>
+<figure>
+<img src="/images/bigquery_7.png" alt="" /><figcaption>结果</figcaption>
+</figure>
+<p>点击 Save Results 可以把结果导出到本地或者 Google Drive.</p>
+<hr />
+<p>本文参考了：</p>
+<p>https://stackoverflow.com/questions/41090396/how-to-select-multiple-custom-firebase-event-parameters-in-bigquery</p>
+</div><div class="post-footer"><p class="license">本文以「<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0">知识共享 署名—相同方式共享（CC BY-SA 4.0）</a>」发布。<br><br>
+允许复制、转贴、演绎本文，<br>
+惟需注明本文地址，<br>
+并遵循相同许可协议。<br></p><div class="like"><img class="like-qrcode" src="/wechat_like.png" alt="like qrcode"><img class="avatar" src="/avatar.jpg"></div></div></article></div></main><footer><div class="paginator"><a class="prev" href="/2021/06/30/%E5%9C%A8-webpack-%E4%B8%AD%E5%AE%9E%E7%8E%B0-loadcss/">上一篇</a><a class="next" href="/2021/04/18/%E5%A5%87%E6%80%AA%E7%9A%84%E6%B8%B2%E6%9F%93/">下一篇</a></div><div class="copyright"><p>&copy; 2023 <a href="https://xiaopc.org">xiaopc</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/xiaopc/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script async src="https://www.googletagmanager.com/gtag/js?id=G-KNHBVTCZSN"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', "G-KNHBVTCZSN");</script></body></html>

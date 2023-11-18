@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="zh-cn"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> 水：去除 PDF 中的文字 · xiaopc</title><meta name="description" content="水：去除 PDF 中的文字 - xiaopc"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://xiaopc.org/atom.xml" title="xiaopc"><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="xiaopc" type="application/atom+xml">
+</head><body><div class="wrap"><header><a class="logo-link" href="/"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link" href="/" target="_self">home</a></li><li class="nav-list-item"><a class="nav-list-link" href="/archives/" target="_self">archives</a></li><li class="nav-list-item"><a class="nav-list-link" href="/links/" target="_self">links</a></li><li class="nav-list-item"><a class="nav-list-link" href="https://xpc.im/" target="_blank">about</a></li><li class="nav-list-item"><a class="nav-list-link" href="/blog-en/" target="_self">en</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">水：去除 PDF 中的文字</h1><div class="post-info">2023年1月29日 · <a href="/categories/%E5%85%B6%E4%BB%96/">其他</a></div><div class="post-content"><blockquote>
+<p>新年好！</p>
+</blockquote>
+<p>网上下载的某些 PDF 文档，经过层层转压，里面带上了一堆水印，很是影响阅读.</p>
+<p>对于纯图片的文档（比如翻拍的纸质书）来说，来一个简单的脚本去除文本水印即可.（图片水印就不是一个脚本能解决的了）</p>
+<span id="more"></span>
+<script src="https://gist.github.com/xiaopc/8d41bc588c50dd419df9aaae6584e0d7.js"></script>
+<p>PDF 是一种页面描述语言，而 PDF 文件由文件结构、文档对象，和一系列描述内容的操作符组成. 一段显示一串 8 的操作符序列如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BT</span><br><span class="line">/F0 192 Tf</span><br><span class="line">1 0 0 -1 0 137 Tm</span><br><span class="line">(8888888888888) Tj</span><br><span class="line">ET</span><br></pre></td></tr></table></figure>
+<p><code>BT</code> 和 <code>ET</code> 是文本 block 开始和结束，<code>Tf</code> 操作选择字体 <code>F0</code> 字号 192pt，<code>Tm</code> 是位置矩阵，<code>Tj</code> 是字符内容. 更多操作符可参考 <a target="_blank" rel="noopener" href="https://zxyle.github.io/PDF-Explained/chapter6.html">PDF Explained</a> 及标准文档.</p>
+<p>再看这个脚本就很简单了，遍历每个页面对象，获取内容操作符列表，去掉 <code>Tj</code>.</p>
+<p>当然，还有待完善的地方，比如去掉整个文本 block, 根据文字删除等等.</p>
+<p>水完了~</p>
+<hr />
+<p>本文参考链接已标注</p>
+</div><div class="post-footer"><p class="license">本文以「<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0">知识共享 署名—相同方式共享（CC BY-SA 4.0）</a>」发布。<br><br>
+允许复制、转贴、演绎本文，<br>
+惟需注明本文地址，<br>
+并遵循相同许可协议。<br></p><div class="like"><img class="like-qrcode" src="/wechat_like.png" alt="like qrcode"><img class="avatar" src="/avatar.jpg"></div></div></article></div></main><footer><div class="paginator"><a class="prev" href="/2023/09/14/%E5%A6%82%E4%BD%95%E7%94%A8-powershell-%E6%9F%A5-ipv6/">上一篇</a><a class="next" href="/2022/10/07/%E5%A6%82%E4%BD%95%E8%AE%A9%E5%BA%94%E7%94%A8%E5%9C%A8-android-4-4-%E4%B8%8B%E4%BD%BF%E7%94%A8-tlsv1-3/">下一篇</a></div><div class="copyright"><p>&copy; 2023 <a href="https://xiaopc.org">xiaopc</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/xiaopc/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script async src="https://www.googletagmanager.com/gtag/js?id=G-KNHBVTCZSN"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', "G-KNHBVTCZSN");</script></body></html>

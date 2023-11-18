@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="zh-cn"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> Flarum 0.1.0-beta8.1 中文化 · xiaopc</title><meta name="description" content="Flarum 0.1.0-beta8.1 中文化 - xiaopc"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://xiaopc.org/atom.xml" title="xiaopc"><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="xiaopc" type="application/atom+xml">
+</head><body><div class="wrap"><header><a class="logo-link" href="/"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link" href="/" target="_self">home</a></li><li class="nav-list-item"><a class="nav-list-link" href="/archives/" target="_self">archives</a></li><li class="nav-list-item"><a class="nav-list-link" href="/links/" target="_self">links</a></li><li class="nav-list-item"><a class="nav-list-link" href="https://xpc.im/" target="_blank">about</a></li><li class="nav-list-item"><a class="nav-list-link" href="/blog-en/" target="_self">en</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">Flarum 0.1.0-beta8.1 中文化</h1><div class="post-info">2019年2月15日 · <a href="/categories/%E5%90%8E%E7%AB%AF/">后端</a></div><div class="post-content"><h2 id="中文语言包">中文语言包</h2>
+<p><a target="_blank" rel="noopener" href="https://discuss.flarum.org/d/17954-chinese-language-pack-for-beta8">Flarum 中文語言包</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer require csineneo/lang-simplified-chinese</span><br></pre></td></tr></table></figure>
+<span id="more"></span>
+<h2 id="中文搜索">中文搜索</h2>
+<p><a target="_blank" rel="noopener" href="https://github.com/jjandxa/flarum-ext-chinese-search">jjandxa/flarum-ext-chinese-search</a></p>
+<p>昨天作者还没合并 <code>branchzero/master</code>，得在 <code>composer.json</code> 里改源。 现在不用了。</p>
+<ol type="1">
+<li><p>先安装服务端<a target="_blank" rel="noopener" href="http://www.xunsearch.com/doc/php/guide/start.installation">官方教程</a> <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">wget http://www.xunsearch.com/download/xunsearch-full-latest.tar.bz2</span><br><span class="line">tar -xjf xunsearch-full-latest.tar.bz2</span><br><span class="line">sh xunsearch-full-1.3.0/setup.sh</span><br><span class="line"><span class="comment"># $prefix 是安装目录</span></span><br><span class="line"><span class="variable">$prefix</span>/bin/xs-ctl.sh restart</span><br></pre></td></tr></table></figure></p></li>
+<li><p>安装插件 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer require jjandxa/flarum-ext-chinese-search</span><br></pre></td></tr></table></figure></p></li>
+<li><p>得把 Flarum 文件夹的权限给 <code>www</code> <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="built_in">chown</span> -R www-data:www-data flarum/</span><br></pre></td></tr></table></figure></p></li>
+<li><p>测试 <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 测试搜索结果</span></span><br><span class="line">./vendor/bin/xs search -p ./vendor/jjandxa/flarum-ext-chinese-search/app.ini -q 关键词</span><br><span class="line"><span class="comment"># 查看 xunsearch 服务端信息</span></span><br><span class="line">./vendor/bin/xs index -p ./vendor/jjandxa/flarum-ext-chinese-search/app.ini --info</span><br></pre></td></tr></table></figure></p></li>
+</ol>
+<h2 id="中文用户名注册">中文用户名注册</h2>
+<p>不建议加，一是搜索用户名时有点奇怪（有点字搜不到？），第二个原因见下一节。</p>
+<p>修改 <code>vendor/flarum/core/src/User/UserValidator.php</code> 第 49 行，在 <code>regex:/^[</code> 后加 <code>\x00-\xff</code></p>
+<p>（奇怪为什么不能用 <code>\x&#123;4e00&#125;-\x&#123;9fa5&#125;</code> <code>\u4e00-\u9fa5</code> <code>\p&#123;Han&#125;</code>）</p>
+<h2 id="中文用户名被-at">中文用户名被 at</h2>
+<p><a target="_blank" rel="noopener" href="http://discuss.flarum.org.cn/d/342">Mentions插件对中文用户名无法正确进行格式化</a></p>
+<blockquote>
+<p>update 2019/2/28</p>
+</blockquote>
+<p>还没<em>完全</em>解决...</p>
+<p>同样的方法改了 <code>vendor/flarum/mentions/src/Listener/FormatPostMentions.php</code> <code>vendor/flarum/mentions/src/Listener/FormatUserMentions.php</code></p>
+<p>还改了 <code>FormatUserMentions.php</code> 93 行，给 <code>$tag-&gt;getAttribute('username')</code> 外面包了 <code>rawurlencode()</code></p>
+<p>清掉缓存以后，帖子 mention 显示正常。但是新建帖子显示不正常。</p>
+<p>（但是可以被 at 到）</p>
+<h2 id="去掉帖子地址后面的摘要不支持中文">去掉帖子地址后面的摘要（不支持中文）</h2>
+<p>还没完全解决...</p>
+<p>去掉生成的 HTML 里的帖子地址：修改 <code>vendor/flarum/core/views/frontend/content/index.blade.php</code>，删掉第 10 行 <code>'id' =&gt; $discussion-&gt;id</code> 后的内容。</p>
+<p>去掉 js 的路由：修改 <code>vendor/flarum/core/js/src/forum/routes.js</code>, 把第 39 行改为 <code>id: discussion.id(),</code>。</p>
+<p>然鹅要 <code>npm build</code> 才能生成 dist，所以就没搞了。</p>
+<p>其实不改还是可以打开...</p>
+</div><div class="post-footer"><p class="license">本文以「<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0">知识共享 署名—相同方式共享（CC BY-SA 4.0）</a>」发布。<br><br>
+允许复制、转贴、演绎本文，<br>
+惟需注明本文地址，<br>
+并遵循相同许可协议。<br></p><div class="like"><img class="like-qrcode" src="/wechat_like.png" alt="like qrcode"><img class="avatar" src="/avatar.jpg"></div></div></article></div></main><footer><div class="paginator"><a class="prev" href="/2019/02/20/python-%E8%8E%B7%E5%8F%96%E6%8E%A7%E5%88%B6%E5%8F%B0%E8%BE%93%E5%87%BA%E4%BA%8C%E4%B8%89%E4%BA%8B/">上一篇</a><a class="next" href="/2019/01/28/wsl-%E4%B8%80%E4%B8%AA%E5%B7%A8%E5%9D%91/">下一篇</a></div><div class="copyright"><p>&copy; 2023 <a href="https://xiaopc.org">xiaopc</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/xiaopc/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script async src="https://www.googletagmanager.com/gtag/js?id=G-KNHBVTCZSN"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', "G-KNHBVTCZSN");</script></body></html>

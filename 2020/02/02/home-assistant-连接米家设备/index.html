@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="zh-cn"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> Home Assistant 连接米家设备 · xiaopc</title><meta name="description" content="Home Assistant 连接米家设备 - xiaopc"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://xiaopc.org/atom.xml" title="xiaopc"><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="xiaopc" type="application/atom+xml">
+</head><body><div class="wrap"><header><a class="logo-link" href="/"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link" href="/" target="_self">home</a></li><li class="nav-list-item"><a class="nav-list-link" href="/archives/" target="_self">archives</a></li><li class="nav-list-item"><a class="nav-list-link" href="/links/" target="_self">links</a></li><li class="nav-list-item"><a class="nav-list-link" href="https://xpc.im/" target="_blank">about</a></li><li class="nav-list-item"><a class="nav-list-link" href="/blog-en/" target="_self">en</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">Home Assistant 连接米家设备</h1><div class="post-info">2020年2月2日 · <a href="/categories/%E5%85%B6%E4%BB%96/">其他</a></div><div class="post-content"><p>谁说米家的设备不能接入天猫精灵呢？</p>
+<span id="more"></span>
+<h2 id="intro">0. Intro</h2>
+<p>（在讨论 nodemcu 中）</p>
+<p>冰神：「天猫精灵没得靠谱的温度传感器，决定自己做一个」</p>
+<p>窝：「米家空气监测仪啊」</p>
+<p>冰神：「可是我不用小爱同学」</p>
+<h2 id="先批判一番">1. 先批判一番</h2>
+<p>智能家居品牌都喜欢搞独占这一套（指国内）。</p>
+<p>比如，只能接入米家的「米家智能插座 WiFi 版」只要 39 RMB，而 ZigBee 版要 69 RMB（还得再买个网关）才能接入 Homekit。</p>
+<p>（虽然 ZigBee 版功能多一点）</p>
+<p>用米家 WiFi 芯片的 IoT 设备只能接入米家的云服务，再加上现在国内貌似只有米家的生态链最齐全，感觉已经有米家垄断的影子了。</p>
+<h2 id="介绍-home-assistant-hass">2. 介绍 Home Assistant (hass)</h2>
+<p>引述文档的一个中文版翻译 [1]：</p>
+<blockquote>
+<p>Home Assistant 是一款基于 Python 的智能家居开源系统，支持众多品牌的智能家居设备，可以轻松实现设备的语音控制、自动化等。</p>
+</blockquote>
+<p>简单讲，hass 就是一套统一的网关系统，与所有的硬件进行通讯，然后对外提供 Web GUI 和接口。</p>
+<p>然后有人在天猫精灵的平台做了 hass 的适配，由于窝没有天猫精灵就不尝试了，<a target="_blank" rel="noopener" href="https://card.weibo.com/article/m/show/id/2309404214308207761132">链接在这</a>。</p>
+<p><a target="_blank" rel="noopener" href="https://www.home-assistant.io/integrations/">目前官方适配的硬件列表在这</a>，当然也可以自己写适配器，就参考官方文档啦。</p>
+<h2 id="安装-hass">3. 安装 hass</h2>
+<p>推荐配置是树莓派 4B，树莓派可以直接用基于 Raspbian 的 <a target="_blank" rel="noopener" href="https://www.home-assistant.io/hassio/">Hass.io</a> 镜像。（当然也有一些国情优化版，自行选择 ;D</p>
+<p>也有 <a target="_blank" rel="noopener" href="https://hub.docker.com/r/homeassistant/home-assistant">Docker 版</a>，能装到群晖或者软路由什么的上面。</p>
+<p>当然，如果是在本地测试的话，要求 Python 3.5.3+。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">pip3 install homeassistant</span><br><span class="line">hass --open-ui</span><br></pre></td></tr></table></figure>
+<p>默认端口号是 <code>8123</code> ，第一次启动是一大堆配置，用户名密码什么的。</p>
+<p>（当然，推荐是用 venv）</p>
+<h2 id="米家相关">4. 米家相关</h2>
+<p>连接 ZigBee 设备是比较简单的（<a target="_blank" rel="noopener" href="https://home-assistant.cc/component/xiaomi/zigbee/">见这</a>），而直接连接云服务的 WiFi 设备就比较头疼了。</p>
+<p>这类设备的接口被叫做 <code>miIO</code>，走这个接口的设备<a target="_blank" rel="noopener" href="https://github.com/rytilahti/python-miio">见此</a>。（想研究协议本身可以看<a target="_blank" rel="noopener" href="https://github.com/OpenMiHome/mihome-binary-protocol/blob/master/doc/PROTOCOL.md">这个</a>）</p>
+<p>与每个使用 <code>miIO</code> 的设备通信都需要一个 token，目前只能通过提取 Android 米家 5.0 至 <a target="_blank" rel="noopener" href="https://mi-home.en.uptodown.com/android/download/1690042">5.0.19</a> 版本的数据库文件 <code>miio2.db</code> 才能获取到。（4.x 实测已经不能显示此类设备）</p>
+<p>（注意，这个 token 在重置网络后会失效）</p>
+<p>有 root 就很简单，直接打开 <code>/data/data/com.xiaomi.smarthome/databases/miio2.db</code>，里面 <code>devicereord</code> 表就有设备对应的 token。</p>
+<p>没有 root 的话就只能用应用备份把数据库备份出来，再解包备份文件。</p>
+<p>通过 adb 备份（不是所有的 ROM 都可以，窝用 Smartisan M1 就没法备份，当然用模拟器可能更简单）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">adb backup -noapk com.xiaomi.smarthome -f backup.ab</span><br></pre></td></tr></table></figure>
+<p>然后用 <code>adbextractor</code>（<a target="_blank" rel="noopener" href="https://sourceforge.net/projects/adbextractor/">sourceforge</a>） 提取： <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -jar ../android-backup-extractor/abe.jar unpack backup.ab backup.tar <span class="string">&quot;&quot;</span></span><br></pre></td></tr></table></figure></p>
+<p>SQLite 数据库有很多在线查看的工具，比如 <a target="_blank" rel="noopener" href="https://inloop.github.io/sqlite-viewer/">https://inloop.github.io/sqlite-viewer/</a>。</p>
+<p>此外，配置还需要设备的 IP，看下路由表就有，刚才那张表的 <code>localIP</code> 列也有。要确认 hass 运行的设备能连接上这个 IP。</p>
+<h2 id="配置">5. 配置</h2>
+<p>hass 所有的配置都在配置目录的 <code>configuration.yaml</code> 里，在支持的设备列表里有配置说明，在参考链接 [2] 也有（这个翻译版有的地方有点旧了，有官方适配的还是以官方文档为准）。</p>
+<p>这里以米家空气检测仪为例，文档页面<a target="_blank" rel="noopener" href="https://www.home-assistant.io/integrations/air_quality.xiaomi_miio/">在此</a>。</p>
+<p>直接在 <code>configuration.yaml</code> 里添加：</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">air_quality:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">platform:</span> <span class="string">xiaomi_miio</span></span><br><span class="line">    <span class="attr">host:</span> <span class="string">IP_ADDRESS</span></span><br><span class="line">    <span class="attr">token:</span> <span class="string">YOUR_TOKEN</span></span><br><span class="line">    <span class="attr">name:</span> <span class="string">Mijia</span> <span class="string">Air</span> <span class="string">Quality</span> <span class="string">Monitor</span></span><br></pre></td></tr></table></figure>
+<p>注意 <a target="_blank" rel="noopener" href="https://learnxinyminutes.com/docs/zh-cn/yaml-cn/">yaml 的语法</a>（缩进），以及根节点（比如上面就是 <code>air_quality</code>）不能有重复的，要写成一个列表。</p>
+<p>在第一次运行的时候，可能会注意到在 Web 界面上就能添加一些设备，但是不知道为什么那个入口没有米家（？？？）；然后 yaml 也有 <code>import</code>，可以自己去拆分成几个文件；再然后 Web 界面等等的配置也是在 <code>configuration.yaml</code> 里面改，具体见文档。</p>
+<h2 id="尾声">6. 尾声</h2>
+<p>先放个图吧。</p>
+<p><img src="/images/home-assistant.jpg" /></p>
+<p>如果仔细看图可以发现，虽然能获取到数据，但是显示还是有点小问题（<span class="math inline">\(\mathrm{CO_{2}e}\)</span> 这个值是因为窝关了这项检测）。此外，米家空气检测仪还有温湿度检测，但是官方的适配就强行把它归类到空气质量类 sensor，不显示温湿度...（<code>python-miio</code> 库<a target="_blank" rel="noopener" href="https://github.com/rytilahti/python-miio/blob/master/miio/airqualitymonitor.py">明明就有输出</a>，当然咯也可以自己写适配器）</p>
+<p>窝觉得，这个项目迟早要重构（</p>
+<hr />
+<p>本文参考了：</p>
+<p>[1] Home Assistant 中文文档 <a target="_blank" rel="noopener" href="https://home-assistant.cc/">https://home-assistant.cc/</a></p>
+<p>[2] WiFi - Home Assistant 中文文档 <a target="_blank" rel="noopener" href="https://home-assistant.cc/component/xiaomi/wifi/">https://home-assistant.cc/component/xiaomi/wifi/</a></p>
+</div><div class="post-footer"><p class="license">本文以「<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0">知识共享 署名—相同方式共享（CC BY-SA 4.0）</a>」发布。<br><br>
+允许复制、转贴、演绎本文，<br>
+惟需注明本文地址，<br>
+并遵循相同许可协议。<br></p><div class="like"><img class="like-qrcode" src="/wechat_like.png" alt="like qrcode"><img class="avatar" src="/avatar.jpg"></div></div></article></div></main><footer><div class="paginator"><a class="prev" href="/2020/02/20/%E7%BB%99-github-%E5%8A%A0-gpg-%E7%AD%BE%E5%90%8D%E8%AE%A4%E8%AF%81/">上一篇</a><a class="next" href="/2019/08/29/github-actions-%E6%B5%8B%E8%AF%95-%E8%87%AA%E5%8A%A8%E9%83%A8%E7%BD%B2-hexo/">下一篇</a></div><div class="copyright"><p>&copy; 2023 <a href="https://xiaopc.org">xiaopc</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/xiaopc/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script async src="https://www.googletagmanager.com/gtag/js?id=G-KNHBVTCZSN"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', "G-KNHBVTCZSN");</script></body></html>

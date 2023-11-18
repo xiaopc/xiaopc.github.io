@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="zh-cn"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> Serverless 写 Telegram Bot? 白嫖 IBM Cloud (1) · xiaopc</title><meta name="description" content="Serverless 写 Telegram Bot? 白嫖 IBM Cloud (1) - xiaopc"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://xiaopc.org/atom.xml" title="xiaopc"><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="xiaopc" type="application/atom+xml">
+</head><body><div class="wrap"><header><a class="logo-link" href="/"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link" href="/" target="_self">home</a></li><li class="nav-list-item"><a class="nav-list-link" href="/archives/" target="_self">archives</a></li><li class="nav-list-item"><a class="nav-list-link" href="/links/" target="_self">links</a></li><li class="nav-list-item"><a class="nav-list-link" href="https://xpc.im/" target="_blank">about</a></li><li class="nav-list-item"><a class="nav-list-link" href="/blog-en/" target="_self">en</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">Serverless 写 Telegram Bot? 白嫖 IBM Cloud (1)</h1><div class="post-info">2020年11月18日 · <a href="/categories/devops/">devops</a></div><div class="post-content"><blockquote>
+<p>2023-11-18 update: 三年后 IBM Cloud 砍了云函数业务，本文可以不用看了</p>
+</blockquote>
+<p>网上的教程都是教白嫖 Cloud Foundary 建站<del>开梯子</del>的，弄得 IBM 都开始封 IP 了，哼。 (* ￣︿￣)</p>
+<p>来玩点正经的吧！今天用 Serverless 来做 Telegram Bot。</p>
+<span id="more"></span>
+<h2 id="注册">0. 注册</h2>
+<p>IBM Cloud 的免费 tier 有一个好，不用绑信用卡（这也是被薅太多的原因之一）。</p>
+<p>在 <a target="_blank" rel="noopener" href="https://www.ibm.com/cloud/free">https://www.ibm.com/cloud/free</a> 能看到免费项目，这里首先要用 IBM Cloud Functions。</p>
+<p>Cloud Functions 是 IBM 提供的 Serverless 服务，类似<a target="_blank" rel="noopener" href="https://www.aliyun.com/product/fc?source=5176.11533457&amp;userCode=hl1uilbl">阿里云的函数计算</a>、<a target="_blank" rel="noopener" href="https://cloud.tencent.com/act/cps/redirect?redirect=10232&amp;cps_key=da2e67a4ea07864f3ac54599a94cd8c7">腾讯云的云函数</a>。与 App Engine 服务不同的是，函数计算只在被触发时才会运行，在限定执行时间返回结果，不能持久运行。</p>
+<p>IBM Cloud 给了 500 万次/月的免费额度，阿里云和腾讯云也有一定的免费额度。不过这次是来做 Telegram Bot，这里就来嫖 IBM 的。</p>
+<p>注册的时候，如果在最后一步遇到错误，那么可能是被 ban IP 了，可以试试挂梯子注册...</p>
+<h2 id="安装-cli-及配置">1. 安装 CLI 及配置</h2>
+<p>注册以后来到网页控制台里的 <a target="_blank" rel="noopener" href="https://cloud.ibm.com/functions">Cloud Functions</a>。控制台里有这些选项卡：</p>
+<ul>
+<li><p>操作：这里是函数列表。</p></li>
+<li><p>触发器：这里可以添加从 IBM Cloud 其他服务或第三方消息源收到信息后触发某个函数，这里还用不到。</p></li>
+<li><p>API：把函数整理成 API，目前还用不到。</p></li>
+<li><p>监视：能看到最近请求的日志</p></li>
+<li><p>名称空间设置：namespace，顾名思义。默认分配的位于达拉斯，名称是邮箱。也可以添加其他地方，但这里有坑，后面再说。</p></li>
+</ul>
+<p>如果在网页控制台里新建操作，会发现它只给了个单文件代码输入，而且还没办法添加 packages，这就很鸡肋了。</p>
+<p>所以要安装 CLI 来在本地写代码：（下面是 Linux 安装，其他安装方法<a target="_blank" rel="noopener" href="https://cloud.ibm.com/docs/openwhisk?topic=cloud-functions-cli_install">见这</a>）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ curl -fsSL https://clis.cloud.ibm.com/install/linux | sh</span><br></pre></td></tr></table></figure>
+<p>登录，注意这时要选区域，如果是达拉斯那就是 <code>us-south</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ibmcloud login</span><br></pre></td></tr></table></figure>
+<p>需要额外设置「组织」和「空间名」两个设置，在网页版右上角「管理-账户-Cloud Foundry 组织」可以找到组织名（一般是账号邮件地址），点进去有空间名（一般是 <code>dev</code>）。</p>
+<p><del>前面提到的坑在于，在 Cloud Functions 里建立的命名空间不是基于 Cloud Foundary 的，无法用 CLI 来进行操作（aka 只能用网页操作）。而 Cloud Foundary 在免费 tier 只提供了 <code>us-south</code>，所以东京等等节点基本上没法用...</del></p>
+<blockquote>
+<p>2021.1.25 update <br> (基于 IAM 而不是 Cloud Foundary 的命名空间) 其实可以用 CLI，区域选新命名空间所在的区域，然后用 <code>ibmcloud fn property set --namespace '命名空间'</code> 为 Function 单独指定即可，不需要设置 Cloud Foundary 相关参数.</p>
+</blockquote>
+<blockquote>
+<p>2021.9.14 update <br> 如果需要设置上述命名空间，现在需要先设置资源组。在「管理-账户-资源组」找到标识（一串十六进制），用 <code>ibmcloud target -g 标识</code> 命令设置.</p>
+</blockquote>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ibmcloud target -o 组织名 -s 空间名</span><br></pre></td></tr></table></figure>
+<p>设置好以后查看下账号信息，应该是这样的：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ ibmcloud target</span><br><span class="line"></span><br><span class="line">API endpoint:      https://cloud.ibm.com</span><br><span class="line">Region:            us-south</span><br><span class="line">User:              ******@****.com</span><br><span class="line">Account:           ***** <span class="string">&#x27;s Account (****************)</span></span><br><span class="line"><span class="string">Resource group:    No resource group targeted, use &#x27;</span>ibmcloud target -g RESOURCE_GROUP<span class="string">&#x27;</span></span><br><span class="line"><span class="string">CF API endpoint:   https://api.us-south.cf.cloud.ibm.com (API version: 2.153.0)</span></span><br><span class="line"><span class="string">Org:               ******@****.com</span></span><br><span class="line"><span class="string">Space:             dev</span></span><br></pre></td></tr></table></figure>
+<p>(资源组可以不设置)</p>
+<p>然后安装 Functions 插件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ ibmcloud plugin install cloud-functions</span><br></pre></td></tr></table></figure>
+<p>这样 CLI 就配置好了。</p>
+<h2 id="注册-telegram-bot">2. 注册 Telegram Bot</h2>
+<p><del>首先要有 Telegram 账号</del></p>
+<p>搜索 <span class="citation" data-cites="BotFather">@BotFather</span> 按照提示建立就好。</p>
+<p>记录一下 HTTP API 的 token <code>**********:******************************</code>。</p>
+<h2 id="开始写">3. 开始写</h2>
+<p>这里选择是用 Python 3.7 的环境，使用 <a target="_blank" rel="noopener" href="https://python-telegram-bot.readthedocs.io/en/stable/index.html">python-telegram-bot</a> 这个库。</p>
+<p>首先建立一个名叫 <code>virtualenv</code> 的 virtualenv...(好像其他名字不认)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ virtualenv virtualenv</span><br><span class="line">$ <span class="built_in">source</span> virtualenv/bin/activate</span><br></pre></td></tr></table></figure>
+<p>安装依赖：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ pip install python-telegram-bot</span><br></pre></td></tr></table></figure>
+<p>主入口是 <code>__main__.py</code>，代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> telegram <span class="keyword">import</span> Bot, Update</span><br><span class="line"><span class="keyword">from</span> telegram.ext <span class="keyword">import</span> Dispatcher, CommandHandler, MessageHandler, CallbackQueryHandler, Filters, CallbackContext</span><br><span class="line"></span><br><span class="line"><span class="keyword">global</span> TOKEN</span><br><span class="line"><span class="keyword">global</span> bot</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">fn_hi</span>(<span class="params">update: Update, context: CallbackContext</span>) -&gt; <span class="literal">None</span>:</span><br><span class="line">    update.message.reply_text(<span class="string">&#x27;ヾ(•ω•`)o&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">response</span>(<span class="params">update: Update, context: CallbackContext</span>) -&gt; <span class="literal">None</span>:</span><br><span class="line">    update.message.reply_text(update.message.text)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">main</span>(<span class="params">args</span>):</span><br><span class="line">    <span class="comment"># initialize bot object</span></span><br><span class="line">    TOKEN = args[<span class="string">&#x27;BOT_API_KEY&#x27;</span>]</span><br><span class="line">    bot = Bot(token=TOKEN)</span><br><span class="line">    <span class="comment"># set dispatcher</span></span><br><span class="line">    dispatcher = Dispatcher(bot=bot, update_queue=Queue(), use_context=<span class="literal">True</span>)</span><br><span class="line">    dispatcher.add_handler(CommandHandler(<span class="string">&#x27;hi&#x27;</span>, fn_hi))</span><br><span class="line">    dispatcher.add_handler(MessageHandler(Filters.text &amp; ~Filters.command, response))</span><br><span class="line">    dispatcher.add_handler(CallbackQueryHandler(handle_callback))</span><br><span class="line">    <span class="comment"># get webhook callback</span></span><br><span class="line">    update = Update.de_json(args, bot)</span><br><span class="line">    <span class="comment"># push to dispatcher</span></span><br><span class="line">    dispatcher.process_update(update)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> &#123; <span class="string">&#x27;code&#x27;</span>: <span class="string">&#x27;200&#x27;</span> &#125;</span><br></pre></td></tr></table></figure>
+<p>代码里不设置 token，在部署的时候会作为参数传入。</p>
+<p>这就完成了一个无情的复读机 (o=^•ェ•)o　┏━┓</p>
+<p>如何部署，见下回分晓...</p>
+<hr />
+<p>本文参考了：</p>
+<p>[1] https://medium.com/<span class="citation" data-cites="aliabdelaal/telegram-bot-tutorial-using-python-and-flask-1fc634da9522">@aliabdelaal/telegram-bot-tutorial-using-python-and-flask-1fc634da9522</span></p>
+</div><div class="post-footer"><p class="license">本文以「<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0">知识共享 署名—相同方式共享（CC BY-SA 4.0）</a>」发布。<br><br>
+允许复制、转贴、演绎本文，<br>
+惟需注明本文地址，<br>
+并遵循相同许可协议。<br></p><div class="like"><img class="like-qrcode" src="/wechat_like.png" alt="like qrcode"><img class="avatar" src="/avatar.jpg"></div></div></article></div></main><footer><div class="paginator"><a class="prev" href="/2020/12/07/serverless-%E5%86%99-telegram-bot-%E7%99%BD%E5%AB%96-ibm-cloud-2/">上一篇</a><a class="next" href="/2020/06/22/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E7%9A%84%E5%89%8D%E7%AB%AF-i18n/">下一篇</a></div><div class="copyright"><p>&copy; 2023 <a href="https://xiaopc.org">xiaopc</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/xiaopc/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script async src="https://www.googletagmanager.com/gtag/js?id=G-KNHBVTCZSN"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', "G-KNHBVTCZSN");</script></body></html>

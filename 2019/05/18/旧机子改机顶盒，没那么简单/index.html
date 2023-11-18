@@ -1,0 +1,90 @@
+<!DOCTYPE html><html lang="zh-cn"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> 旧机子改机顶盒，没那么简单 · xiaopc</title><meta name="description" content="旧机子改机顶盒，没那么简单 - xiaopc"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://xiaopc.org/atom.xml" title="xiaopc"><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="xiaopc" type="application/atom+xml">
+</head><body><div class="wrap"><header><a class="logo-link" href="/"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link" href="/" target="_self">home</a></li><li class="nav-list-item"><a class="nav-list-link" href="/archives/" target="_self">archives</a></li><li class="nav-list-item"><a class="nav-list-link" href="/links/" target="_self">links</a></li><li class="nav-list-item"><a class="nav-list-link" href="https://xpc.im/" target="_blank">about</a></li><li class="nav-list-item"><a class="nav-list-link" href="/blog-en/" target="_self">en</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">旧机子改机顶盒，没那么简单</h1><div class="post-info">2019年5月18日 · <a href="/categories/%E5%85%B6%E4%BB%96/">其他</a></div><div class="post-content"><p>有台老机子，3220 的 U，4+4 DDR3 1600，Mini-ITX 的小板（B75N），小机箱，一直在吃灰。 最近因为电信的机顶盒总是不稳定，而且点播等等功能还要另收费，就琢磨着把这台机子改成机顶盒用。</p>
+<p>结果呢？Too young, too simple!</p>
+<span id="more"></span>
+<h2 id="为什么要这么用买个盒子不行吗">为什么要这么用，买个盒子不行吗？</h2>
+<p>国内销售的盒子，由于广电对播控平台的要求，只能装那几个众所周知的视频平台。</p>
+<p>那不能 root 吗？</p>
+<p>国产盒子的 root 的麻烦程度快比手机难受了，而且那些 xx 精灵真的一言难尽啊。 （其实可以买电信/移动的定制盒子然后 adb，据说体验还行，不过怕两个盒子的遥控乱掉 orz）</p>
+<p>那国外盒子呢？</p>
+<p>tb 上转了一圈，没有看的上的...(关键词“外贸盒子”，一水的刷好评的)</p>
+<p>那海淘 Android TV？</p>
+<p>为啥要花那个钱啊...（不过小米盒子国际版是能看 Netflix 的）</p>
+<h2 id="准备">准备</h2>
+<p>先装好 Windows，换了 SSD，速度还是可以的。（嘤特尔牙膏++）</p>
+<p>电视操作还是需要遥控器的，tb 上买了个飞鼠。wow, awesome~（其实体验真不如电视的动感遥控器）</p>
+<p>然后就是考虑怎么上 Android。 因为国内在线视频网站的播放体验被人为削弱了，桌面版应用在电视上看着很难受，UWP 应用... 只有爱奇艺还没弃坑吧。</p>
+<p>虚拟机？模拟器？蓝叠？这个机子能带的起来就鬼了。（蓝叠卡的要命，连进播放界面都卡死）</p>
+<p>这个 U 的核芯显卡是 HD Graphics 2500，HDMI 是 1.0 的，输出最多 2k。然而电视是 4k 的... 就将就吧。</p>
+<h2 id="凤凰phoenix-os">凤凰（Phoenix） OS</h2>
+<p>国内桌面安卓做的比较成熟的（好几年没倒就算）也就凤凰了。</p>
+<p>下载，硬盘安装，一气呵成。</p>
+<p>凤凰 OS 的硬盘安装是不划分区的，分区是以镜像文件放到任意分区加载的，这一点好。</p>
+<p>重启进入，当贝市场安装（广告费结一下），云视听系列安装。</p>
+<p>然后就遇到第一个问题了。</p>
+<h4 id="hdmi-没声音">HDMI 没声音</h4>
+<p>是的，如果用 HDMI 连电视，是没有音频输出的。</p>
+<p>原因大概是 pcm 设备默认配置的是除了主输出以外全禁用...</p>
+<p>解决： 1. 在控制台（先开启 root，控制台用自带的或者 SSH 工具都行）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">su</span><br><span class="line">alsa_amixer contents</span><br></pre></td></tr></table></figure>
+<p>记一下名称里有 HDMI 的设备 pcm 号。</p>
+<ol start="2" type="1">
+<li>删除 <code>/dev/snd/</code> 里 <code>pcm</code> 开头，刚才记录的 pcm 号结尾的设备文件，然后在控制台里杀掉音频服务进程：</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">killall audioserver</span><br></pre></td></tr></table></figure>
+<p>看现在有声音了没？如果有就下一步，没有的话就说明...删错了，重来吧...</p>
+<p>（我的是 <code>pcmC0D3p</code>）</p>
+<ol start="3" type="1">
+<li>刚才删除设备文件和杀服务的命令，加到开机启动文件 <code>/system/etc/init.sh</code> 里初始化声卡（<code>alsa_amixer</code> 那几行）的后面。</li>
+</ol>
+<p>这就是第一个问题了。</p>
+<h4 id="更换启动器">更换启动器</h4>
+<p>凤凰的桌面是给 PC 用的，电视上几乎看不清。</p>
+<p>那换成第三方电视启动器，例如当贝桌面？（结广告费x2）</p>
+<p>答案是不行的，系统屏蔽了的。</p>
+<p>解决： 1. 下载启动器的 apk，建个文件夹把 apk 放里面，在里面建立 <code>lib/arm</code> 两级目录，把 apk 包里的 <code>lib/armeabi/libDecryptNative.so'</code> 解压到这。</p>
+<ol start="2" type="1">
+<li><p>把那个文件夹拷到 <code>/system/app</code> 里，文件夹权限 755，文件权限 644。这一步已经装好了。</p></li>
+<li><p>如果启动器不能全屏，修改 <code>/data/system/app_window_settings.xml</code> 里对应包名的 <code>windowState</code> 属性为 <code>5</code>。</p></li>
+<li><p>用幸运破解器把文件管理器冻结掉。</p></li>
+</ol>
+<h4 id="为什么卸载了">为什么卸载了</h4>
+<p>自带的广告足够恶心，真·牛皮癣。</p>
+<p>只要一动广告那个包（凤凰VIP）就开不到机了...</p>
+<h2 id="技德remix-os">技德（Remix） OS</h2>
+<p>Remix OS 已经凉凉了。（不过这几天看起来要回光返照？）</p>
+<p>官网已经没有下载地址了，能下载的地址在 https://www.fosshub.com/Remix-OS.html 。</p>
+<p>就 UI 来讲，觉得比凤凰好一丢丢。</p>
+<h4 id="更换启动器-1">更换启动器</h4>
+<p>也是声称不能换启动器的，但是却自带了个 Lawnchair？这是什么操作？</p>
+<p>Remix OS 就比较简单，直接冻结当前启动器就行了。（然后就切到 Lawnchair 了）</p>
+<h4 id="hdmi-没声音...">HDMI 没声音...</h4>
+<p>对，这几乎是 Android x86 基本都有的问题。</p>
+<p>解决方法一样，只是...</p>
+<p>Remix OS 启动分区没有写权限...</p>
+<p>解决：找到 grub.cfg（在 EFI 分区），在引导项后面加 <code>REMOUNT_RW=1</code></p>
+<h4 id="为什么卸载了x2">为什么卸载了x2</h4>
+<p>由于已经凉了，系统内核有点旧，OpenGL 也有点旧，好几个视频应用会出问题。（当然不能排除是这个核显的锅）</p>
+<p>云视听极光无法播放但是快进以后可以，奇异果、酷喵、电视猫和 Youtube 无法播放，云视听小电视没问题。</p>
+<p>网页播放没问题，但是网页播放为啥要装 Android？</p>
+<h2 id="android-x86">Android x86</h2>
+<p>直接翻车。</p>
+<p>Android x86 已经到 8.1 了，然而硬盘安装器只支持到两年前的版本...</p>
+<p>甚至虚拟机安装卡内核日志...</p>
+<h2 id="fydeos">FydeOS</h2>
+<p>这是 ChromiumOS，支持装 apk。</p>
+<p>但是 Android 启动器就别想了... 桌面基本没用...</p>
+<p>只支持硬盘划分区安装...</p>
+<p>Android 的实现有点奇怪，云视听极光播放页是被选中的，然后满屏蓝色的 active 状态框...</p>
+<h2 id="总结">总结</h2>
+<p>没一个能打的啊，怕是只能用 TNT 了吧（</p>
+<hr />
+<p>参考链接</p>
+<p>[1] 刚刚装了凤凰OS，系统没有声音怎么办？？ http://bbs.phoenixstudio.org/cn/read.php?tid=16959&amp;fid=12</p>
+<p>[2] 装上凤凰os，使用正常就是没声音 http://bbs.phoenixstudio.org/cn/read.php?tid=15196&amp;fid=12</p>
+<p>[3] PhoenixOS 如何安装第三方桌面 http://bbs.phoenixstudio.org/cn/read.php?tid=26250&amp;fid=12</p>
+<p>[4] 请求帮助：root权限（Remixos） http://bbs.phoenixstudio.org/cn/read.php?tid=25689&amp;fid=12</p>
+</div><div class="post-footer"><p class="license">本文以「<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0">知识共享 署名—相同方式共享（CC BY-SA 4.0）</a>」发布。<br><br>
+允许复制、转贴、演绎本文，<br>
+惟需注明本文地址，<br>
+并遵循相同许可协议。<br></p><div class="like"><img class="like-qrcode" src="/wechat_like.png" alt="like qrcode"><img class="avatar" src="/avatar.jpg"></div></div></article></div></main><footer><div class="paginator"><a class="prev" href="/2019/07/15/webpack-%E6%95%B0%E6%8D%AE-mock-%E6%96%B9%E6%B3%95%E6%95%B4%E7%90%86/">上一篇</a><a class="next" href="/2019/03/11/flarum-0-1-0-beta8-1-%E9%AD%94%E6%94%B9%E4%B9%8B%E9%82%AE%E4%BB%B6/">下一篇</a></div><div class="copyright"><p>&copy; 2023 <a href="https://xiaopc.org">xiaopc</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/xiaopc/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script async src="https://www.googletagmanager.com/gtag/js?id=G-KNHBVTCZSN"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', "G-KNHBVTCZSN");</script></body></html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="zh-cn"><head><meta charset="utf-8"><meta name="X-UA-Compatible" content="IE=edge"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><title> 如何让应用在 Android 4.4 下使用 TLSv1.3 · xiaopc</title><meta name="description" content="如何让应用在 Android 4.4 下使用 TLSv1.3 - xiaopc"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/css/apollo.css"><link rel="search" type="application/opensearchdescription+xml" href="https://xiaopc.org/atom.xml" title="xiaopc"><meta name="generator" content="Hexo 5.4.2"><link rel="alternate" href="/atom.xml" title="xiaopc" type="application/atom+xml">
+</head><body><div class="wrap"><header><a class="logo-link" href="/"><img src="/logo.png" alt="logo"></a><ul class="nav nav-list"><li class="nav-list-item"><a class="nav-list-link" href="/" target="_self">home</a></li><li class="nav-list-item"><a class="nav-list-link" href="/archives/" target="_self">archives</a></li><li class="nav-list-item"><a class="nav-list-link" href="/links/" target="_self">links</a></li><li class="nav-list-item"><a class="nav-list-link" href="https://xpc.im/" target="_blank">about</a></li><li class="nav-list-item"><a class="nav-list-link" href="/blog-en/" target="_self">en</a></li></ul></header><main class="container"><div class="post"><article class="post-block"><h1 class="post-title">如何让应用在 Android 4.4 下使用 TLSv1.3</h1><div class="post-info">2022年10月7日 · <a href="/categories/%E7%A7%BB%E5%8A%A8%E5%BC%80%E5%8F%91/">移动开发</a></div><div class="post-content"><blockquote>
+<p>半年更博主 ✅</p>
+</blockquote>
+<p>虽然现在（应该、大约）没有 Android Kitkat <code>API 19</code> 以下的新设备了，但是为了响应欧盟号召，旧设备还是要好好利用啊.</p>
+<p>目前大多数人接触得到的这类旧设备就是机顶盒了，而旧版 Android 内置的 OpenSSL 还支持 SSLv3（有 Poodle 漏洞），而且不支持现代的 TLSv1.3（HTTP/2 必须），这会导致许多连接问题.</p>
+<p>（不关闭 SSLv3 的话，在 Qualys SSL Test 评估会直降一级）</p>
+<p>由于这个问题在中文互联网好像没人写（除了 Stackoverflow 采集站以外），所以就来写一下.</p>
+<span id="more"></span>
+<blockquote>
+<p>如 TLDR 可直接看最后一节</p>
+</blockquote>
+<h2 id="java-加密套件的关系">0. Java 加密套件的关系</h2>
+<p>Java 安全提供者 (JSP) 包括密码学扩展 (JCE) 和安全套接字扩展 (JSSE). 密码学扩展就是 OpenSSL、BoringSSL 这些密码库，安全套接字扩展则是使用密码库来处理 TLS/SSL 连接的 Client/Server 组件.</p>
+<p>支持 TLSv1.3 的话，首先需要支持它的密码套件（比如说，加密算法必须支持 AEAD），这有赖密码学扩展支持.</p>
+<p>而后，需要在协议握手时正确向目标提供密码套件列表（ClientHello/ServerHello），进行证书鉴别等等，然后正确完成建立连接这一系列过程，都是安全套接字扩展负责.</p>
+<p>在 Kitkat 及以前，Android 内置的密码学扩展是 <code>openssl-1.0.1e</code>，而到 <code>1.0.2j</code> 版本才支持，内置的安全套接字扩展自然没有 TLSv1.3 的支持. [1]</p>
+<h2 id="google-钦定的-gms-security-provider">1. Google 钦定的 GMS Security Provider</h2>
+<p>Google 近些年才想到把系统各组件拆开更新，而对于 JSP 则是通过 GMS 来提供，随着 Play Services 一起更新.</p>
+<p>使用 GMS 的应用可以通过 <code>com.google.android.gms.security.ProviderInstaller</code> 安装 GMS 的一揽子 Provider:</p>
+<script src="https://gist.github.com/patrickhammond/0b13ec35160af758d98c.js"></script>
+<p>然而，Kitkat 能安装到最新的 Play Services 版本只有 7.x，还是不够用.</p>
+<h2 id="如果只动-jsse-netcipher">2. 如果只动 JSSE： NetCipher</h2>
+<p>如果只为了禁用 SSLv3 且使用最优的密码套件，<a target="_blank" rel="noopener" href="https://github.com/guardianproject/NetCipher">NetCipher</a> 只是修改 JSSE 的配置，几乎不会造成打包后体积变化.</p>
+<p><code>'info.guardianproject.netcipher:netcipher'</code> 提供了一个 <code>StrongConnectionBuilder</code> 套在 <code>HttpURLConnection</code> 外面，代码改动很小.</p>
+<p>不过，它提供适用 <code>okhttp</code> 的构件 <code>info.guardianproject.netcipher:netcipher-okhttp3</code> 目前为止有 Bug 无法正常使用，且暂无更新计划. [2]</p>
+<h2 id="根本解决内置新版-conscrypt">3. 根本解决：内置新版 Conscrypt</h2>
+<p><a target="_blank" rel="noopener" href="https://github.com/google/conscrypt">Conscrypt</a> 是 Android 系统内置的 JSP，Google 将它独立了出来，使用自己的 BoringSSL 密码库，只需要在应用内置新版就行了.</p>
+<p>但是不像它在 README 里说的那么简单，由于 Conscrypt 没有实现证书管理器 <code>X509ExtendedTrustManager</code> 而且也暂无更新[3]等缺失，所以需要额外实现.</p>
+<p>适配 <code>okhttp</code> 的代码如下（后附一点点说明）；</p>
+<script src="https://gist.github.com/Karewan/4b0270755e7053b471fdca4419467216.js"></script>
+<ol type="1">
+<li><code>okhttp</code> 对 API 19 的支持到 3.12.x 版本</li>
+<li>JSP 列表是从 1 开始编号的</li>
+<li>若还要访问 http 地址，则在 connectionSpecs 那里增加 ConnectionSpec.CLEARTEXT</li>
+<li>SSLContext.init 三个参数分别是 <code>KeyManager[]</code>, <code>TrustManager[]</code>, <code>SecureRandom</code>, null 时使用系统默认第一个</li>
+</ol>
+<hr />
+<p>本文参考了：</p>
+<p>[1] https://enzowyf.github.io/android_alpn.html</p>
+<p>[2] https://gitlab.com/guardianproject/NetCipher/-/issues/17</p>
+<p>[3] https://github.com/google/conscrypt/issues/848</p>
+<p>[4] https://gist.github.com/Karewan/4b0270755e7053b471fdca4419467216</p>
+</div><div class="post-footer"><p class="license">本文以「<a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-sa/4.0">知识共享 署名—相同方式共享（CC BY-SA 4.0）</a>」发布。<br><br>
+允许复制、转贴、演绎本文，<br>
+惟需注明本文地址，<br>
+并遵循相同许可协议。<br></p><div class="like"><img class="like-qrcode" src="/wechat_like.png" alt="like qrcode"><img class="avatar" src="/avatar.jpg"></div></div></article></div></main><footer><div class="paginator"><a class="prev" href="/2023/01/29/%E6%B0%B4-%E5%8E%BB%E9%99%A4-pdf-%E4%B8%AD%E7%9A%84%E6%96%87%E5%AD%97/">上一篇</a><a class="next" href="/2022/04/04/%E6%97%A7%E6%96%87%E6%9B%B4%E6%96%B0-cloudflare-workers-%E5%8F%8D%E4%BB%A3-google-analytics/">下一篇</a></div><div class="copyright"><p>&copy; 2023 <a href="https://xiaopc.org">xiaopc</a>, <a href="https://hexo.io/" target="_blank">hexo</a> & <a href="https://github.com/xiaopc/hexo-theme-apollo" target="_blank">hexo-theme-apollo</a>.</p></div></footer></div><script async src="//cdnjs.loli.net/ajax/libs/mathjax/2.7.2-rc/MathJax.js?config=TeX-AMS-MML_HTMLorMML" crossorigin="anonymous"></script><script async src="https://www.googletagmanager.com/gtag/js?id=G-KNHBVTCZSN"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', "G-KNHBVTCZSN");</script></body></html>
